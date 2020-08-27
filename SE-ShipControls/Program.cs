@@ -21,9 +21,12 @@ namespace IngameScript
 {
     partial class Program : MyGridProgram
     {
+        MyCommandLine commandLine = new MyCommandLine();
+        Dictionary<string, Action> commands = new Dictionary<string, Action>(StringComparer.OrdinalIgnoreCase);
+
         public Program()
         {
-
+            commands["cycle"] = CycleLandingGear;
         }
 
         public void Save()
@@ -32,6 +35,24 @@ namespace IngameScript
         }
 
         public void Main(string argument, UpdateType updateSource)
+        {
+            if (commandLine.TryParse(argument))
+            {
+                
+            }
+        }
+
+        public void CycleLandingGear()
+        {
+
+        }
+
+        public void ShowAltitude()
+        {
+
+        }
+
+        public void ShowProximityWarning()
         {
 
         }
