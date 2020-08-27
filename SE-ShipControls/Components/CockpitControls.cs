@@ -19,19 +19,9 @@ using VRageMath;
 
 namespace IngameScript
 {
-    partial class Program : MyGridProgram
+    partial class Program
     {
-        public Program()
-        {
-
-        }
-
-        public void Save()
-        {
-
-        }
-
-        public void Main(string argument, UpdateType updateSource)
+        public class CockpitControls
         {
 
         }
