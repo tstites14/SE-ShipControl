@@ -24,10 +24,27 @@ namespace IngameScript
         MyCommandLine commandLine = new MyCommandLine();
         Dictionary<string, Action> commands = new Dictionary<string, Action>(StringComparer.OrdinalIgnoreCase);
 
+        bool enableAltitude = false;
+        bool enableProximity = false;
+
+        IMyCockpit cockpit;
+        IMyCameraBlock camera;
+
+        IMyTextSurface proximityLCD;
+        IMyTextSurface altitudeLCD;
+
         public Program()
         {
             commands["cycle"] = Cycle;
             commands["enable"] = Enable;
+
+            cockpit = GridTerminalSystem.GetBlockWithName("Fighter Cockpit") as IMyCockpit;
+            camera = GridTerminalSystem.GetBlockWithName("Proximity Camera") as IMyCameraBlock;
+
+            proximityLCD = cockpit.GetSurface(2);
+            altitudeLCD = cockpit.GetSurface(3);
+
+            Runtime.UpdateFrequency = UpdateFrequency.Update10;
         }
 
         public void Save()
@@ -50,6 +67,15 @@ namespace IngameScript
                 {
                     action();
                 }
+            }
+
+            if (enableProximity)
+            {
+                SetUpProximity();
+            }
+            if (enableAltitude)
+            {
+                SetUpAltitude();
             }
         }
 
@@ -88,44 +114,50 @@ namespace IngameScript
         public void Enable()
         {
             string command = commandLine.Argument(1);
-            IMyCockpit cockpit = GridTerminalSystem.GetBlockWithName("Fighter Cockpit") as IMyCockpit;
-            IMyCameraBlock camera = GridTerminalSystem.GetBlockWithName("Proximity Camera") as IMyCameraBlock;
 
             if (string.Equals(command, "proximity sensor", StringComparison.OrdinalIgnoreCase))
             {
-                EnableProximityWarning(cockpit, camera);
+                EnableProximityWarning();
             }
             else if (string.Equals(command, "altimeter", StringComparison.OrdinalIgnoreCase))
             {
-                EnableAltitude(cockpit, camera);
+                EnableAltitude();
             }
         }
 
-        public void EnableAltitude(IMyCockpit cockpit, IMyCameraBlock camera)
+        public void EnableAltitude()
         {
-            IMyTextSurface lcd = cockpit.GetSurface(0);
+            enableAltitude = true;
+        }
 
+        private void SetUpAltitude()
+        {
             double altitude = GetAltitude(camera);
         }
 
         private double GetAltitude(IMyCameraBlock camera)
         {
             MyDetectedEntityInfo detection = camera.Raycast(500);
-            Vector3 cameraPosition = camera.GetPosition();
-            Vector3D? raycastPosition;
+            Vector3D cameraPosition = camera.GetPosition();
+            Vector3D raycastPosition = new Vector3D();
 
             if (detection.HitPosition != null)
             {
-                raycastPosition = detection.HitPosition;
+                raycastPosition = (Vector3D)detection.HitPosition;
+
+                Vector3D diff = cameraPosition - raycastPosition;
             }
 
             return double.MaxValue;
         }
 
-        public void EnableProximityWarning(IMyCockpit cockpit, IMyCameraBlock camera)
+        public void EnableProximityWarning()
         {
-            IMyTextSurface lcd = cockpit.GetSurface(0);
+            enableProximity = true;
+        }
 
+        private void SetUpProximity()
+        {
 
         }
     }
