@@ -50,7 +50,6 @@ namespace IngameScript
                 {
                     action();
                 }
-
             }
         }
 
@@ -60,33 +59,74 @@ namespace IngameScript
 
             if (string.Equals(command, "landing gear", StringComparison.OrdinalIgnoreCase))
             {
-                
+                CycleLandingGear();
             }
+        }
+
+        public void CycleLandingGear()
+        {
+            List<IMyPistonBase> pistons = new List<IMyPistonBase>();
+            List<IMyMotorStator> hinges = new List<IMyMotorStator>();
+
+            IMyBlockGroup pistonGroup = GridTerminalSystem.GetBlockGroupWithName("Landing Gear Pistons");
+            if (pistonGroup == null)
+            {
+                Echo("Could not find the piston group");
+            }
+            IMyBlockGroup hingeGroup = GridTerminalSystem.GetBlockGroupWithName("Landing Gear Hinges");
+            if (hingeGroup == null)
+            {
+                Echo("Could not find the hinge group");
+            }
+
+            pistonGroup.GetBlocksOfType(pistons);
+            hingeGroup.GetBlocksOfType(hinges);
+
+
         }
 
         public void Enable()
         {
             string command = commandLine.Argument(1);
             IMyCockpit cockpit = GridTerminalSystem.GetBlockWithName("Fighter Cockpit") as IMyCockpit;
+            IMyCameraBlock camera = GridTerminalSystem.GetBlockWithName("Proximity Camera") as IMyCameraBlock;
 
             if (string.Equals(command, "proximity sensor", StringComparison.OrdinalIgnoreCase))
             {
-                EnableProximityWarning(cockpit);
+                EnableProximityWarning(cockpit, camera);
             }
             else if (string.Equals(command, "altimeter", StringComparison.OrdinalIgnoreCase))
             {
-                EnableAltitude(cockpit);
+                EnableAltitude(cockpit, camera);
             }
         }
 
-        public void EnableAltitude(IMyCockpit cockpit)
+        public void EnableAltitude(IMyCockpit cockpit, IMyCameraBlock camera)
         {
             IMyTextSurface lcd = cockpit.GetSurface(0);
+
+            double altitude = GetAltitude(camera);
         }
 
-        public void EnableProximityWarning(IMyCockpit cockpit)
+        private double GetAltitude(IMyCameraBlock camera)
+        {
+            MyDetectedEntityInfo detection = camera.Raycast(500);
+            Vector3 cameraPosition = camera.GetPosition();
+            Vector3D? raycastPosition;
+
+            if (detection.HitPosition != null)
+            {
+                raycastPosition = detection.HitPosition;
+            }
+
+            return double.MaxValue;
+        }
+
+        public void EnableProximityWarning(IMyCockpit cockpit, IMyCameraBlock camera)
         {
             IMyTextSurface lcd = cockpit.GetSurface(0);
+
+
         }
     }
 }
