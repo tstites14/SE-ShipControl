@@ -26,7 +26,8 @@ namespace IngameScript
 
         public Program()
         {
-            commands["cycle"] = CycleLandingGear;
+            commands["cycle"] = Cycle;
+            commands["enable"] = Enable;
         }
 
         public void Save()
@@ -38,23 +39,54 @@ namespace IngameScript
         {
             if (commandLine.TryParse(argument))
             {
+                Action action;
+                string command = commandLine.Argument(0);
+
+                if (command == null)
+                {
+                    Echo("No command specified");
+                }
+                else if (commands.TryGetValue(command, out action))
+                {
+                    action();
+                }
+
+            }
+        }
+
+        public void Cycle()
+        {
+            string command = commandLine.Argument(1);
+
+            if (string.Equals(command, "landing gear", StringComparison.OrdinalIgnoreCase))
+            {
                 
             }
         }
 
-        public void CycleLandingGear()
+        public void Enable()
         {
+            string command = commandLine.Argument(1);
+            IMyCockpit cockpit = GridTerminalSystem.GetBlockWithName("Fighter Cockpit") as IMyCockpit;
 
+            if (string.Equals(command, "proximity sensor", StringComparison.OrdinalIgnoreCase))
+            {
+                EnableProximityWarning(cockpit);
+            }
+            else if (string.Equals(command, "altimeter", StringComparison.OrdinalIgnoreCase))
+            {
+                EnableAltitude(cockpit);
+            }
         }
 
-        public void ShowAltitude()
+        public void EnableAltitude(IMyCockpit cockpit)
         {
-
+            IMyTextSurface lcd = cockpit.GetSurface(0);
         }
 
-        public void ShowProximityWarning()
+        public void EnableProximityWarning(IMyCockpit cockpit)
         {
-
+            IMyTextSurface lcd = cockpit.GetSurface(0);
         }
     }
 }
