@@ -27,6 +27,8 @@ namespace IngameScript
         bool enableAltitude = false;
         bool enableProximity = false;
 
+        GearState gearState;
+
         IMyCockpit cockpit;
         IMyCameraBlock camera;
 
@@ -49,7 +51,7 @@ namespace IngameScript
 
         public void Save()
         {
-
+            Storage = string.Format("{0};{1};{2}", enableAltitude.ToString(), enableProximity.ToString(), gearState);
         }
 
         public void Main(string argument, UpdateType updateSource)
@@ -67,6 +69,15 @@ namespace IngameScript
                 {
                     action();
                 }
+            }
+
+            if (Storage != "")
+            {
+                string[] entries = Storage.Split(';');
+                bool.TryParse(entries[0], out enableAltitude);
+                bool.TryParse(entries[1], out enableProximity);
+
+                Enum.TryParse(entries[2], out gearState);
             }
 
             Echo("Altitude: " + enableAltitude.ToString());
@@ -111,7 +122,7 @@ namespace IngameScript
             pistonGroup.GetBlocksOfType(pistons);
             hingeGroup.GetBlocksOfType(hinges);
 
-
+            //TODO: Set gearState
         }
 
         public void Enable()
@@ -185,7 +196,19 @@ namespace IngameScript
 
         private void SetUpProximity()
         {
+            float altitude = Convert.ToSingle(GetAltitude(camera));
 
+            if (altitude <= 15 && gearState != GearState.Open)
+            {
+
+            }
+        }
+
+        private enum GearState
+        {
+            Open,
+            Transition,
+            Closed
         }
     }
 }
