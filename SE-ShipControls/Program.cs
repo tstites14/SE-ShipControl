@@ -69,6 +69,9 @@ namespace IngameScript
                 }
             }
 
+            Echo("Altitude: " + enableAltitude.ToString());
+            Echo("Proximity: " + enableProximity.ToString());
+
             if (enableProximity)
             {
                 SetUpProximity();
@@ -128,24 +131,46 @@ namespace IngameScript
         public void EnableAltitude()
         {
             enableAltitude = true;
+
+            SetUpAltitude();
         }
 
         private void SetUpAltitude()
         {
-            double altitude = GetAltitude(camera);
+            float altitude = Convert.ToSingle(GetAltitude(camera));
+
+            RectangleF view = new RectangleF((altitudeLCD.TextureSize - altitudeLCD.SurfaceSize) / 2F, altitudeLCD.SurfaceSize);
+            var frame = altitudeLCD.DrawFrame();
+
+            var altitudeSprite = new MySprite()
+            {
+                Type = SpriteType.TEXT,
+                Data = string.Format("{0:F1}", altitude),
+                RotationOrScale = 1,
+                Color = Color.White,
+                Alignment = TextAlignment.CENTER,
+                FontId = "White"
+            };
+
+            frame.Add(altitudeSprite);
+
+            frame.Dispose();
         }
 
         private double GetAltitude(IMyCameraBlock camera)
         {
+            camera.EnableRaycast = true;
             MyDetectedEntityInfo detection = camera.Raycast(500);
             Vector3D cameraPosition = camera.GetPosition();
-            Vector3D raycastPosition = new Vector3D();
+            Vector3D raycastPosition;
 
             if (detection.HitPosition != null)
             {
                 raycastPosition = (Vector3D)detection.HitPosition;
 
                 Vector3D diff = cameraPosition - raycastPosition;
+
+                return diff.Length() - 0.3;
             }
 
             return double.MaxValue;
@@ -154,6 +179,8 @@ namespace IngameScript
         public void EnableProximityWarning()
         {
             enableProximity = true;
+
+            SetUpProximity();
         }
 
         private void SetUpProximity()
