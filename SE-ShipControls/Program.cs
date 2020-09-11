@@ -24,6 +24,7 @@ namespace IngameScript
         MyCommandLine commandLine = new MyCommandLine();
         Dictionary<string, Action> commands = new Dictionary<string, Action>(StringComparer.OrdinalIgnoreCase);
 
+        bool firstRun = true;
         bool enableAltitude = false;
         bool enableProximity = false;
 
@@ -34,6 +35,9 @@ namespace IngameScript
 
         IMyTextSurface proximityLCD;
         IMyTextSurface altitudeLCD;
+
+        List<IMyMotorStator> hinges;
+        List<IMyPistonBase> pistons;
 
         public Program()
         {
@@ -46,12 +50,17 @@ namespace IngameScript
             proximityLCD = cockpit.GetSurface(2);
             altitudeLCD = cockpit.GetSurface(3);
 
+            hinges = new List<IMyMotorStator>();
+            pistons = new List<IMyPistonBase>();
+            GridTerminalSystem.GetBlockGroupWithName("Landing Gear Hinges").GetBlocksOfType(hinges);
+            GridTerminalSystem.GetBlockGroupWithName("Landing Gear Pistons").GetBlocksOfType(pistons);
+
             Runtime.UpdateFrequency = UpdateFrequency.Update10;
         }
 
         public void Save()
         {
-            Storage = string.Format("{0};{1};{2}", enableAltitude.ToString(), enableProximity.ToString(), gearState);
+            Storage = string.Format("{0};{1};{2};{3}", enableAltitude.ToString(), enableProximity.ToString(), firstRun.ToString(), gearState);
         }
 
         public void Main(string argument, UpdateType updateSource)
@@ -76,8 +85,9 @@ namespace IngameScript
                 string[] entries = Storage.Split(';');
                 bool.TryParse(entries[0], out enableAltitude);
                 bool.TryParse(entries[1], out enableProximity);
+                bool.TryParse(entries[2], out firstRun);
 
-                Enum.TryParse(entries[2], out gearState);
+                Enum.TryParse(entries[3], out gearState);
             }
 
             Echo("Altitude: " + enableAltitude.ToString());
@@ -90,6 +100,16 @@ namespace IngameScript
             if (enableAltitude)
             {
                 SetUpAltitude();
+            }
+
+            if (firstRun)
+            {
+                //Calibrate gearState in case gear has never been deployed before
+                List<IMyLandingGear> landingGear = new List<IMyLandingGear>();
+                GridTerminalSystem.GetBlocksOfType(landingGear);
+
+                CalibrateGearState(landingGear);
+                firstRun = false;
             }
         }
 
@@ -105,24 +125,37 @@ namespace IngameScript
 
         public void CycleLandingGear()
         {
-            List<IMyPistonBase> pistons = new List<IMyPistonBase>();
-            List<IMyMotorStator> hinges = new List<IMyMotorStator>();
-
-            IMyBlockGroup pistonGroup = GridTerminalSystem.GetBlockGroupWithName("Landing Gear Pistons");
-            if (pistonGroup == null)
-            {
-                Echo("Could not find the piston group");
-            }
-            IMyBlockGroup hingeGroup = GridTerminalSystem.GetBlockGroupWithName("Landing Gear Hinges");
-            if (hingeGroup == null)
-            {
-                Echo("Could not find the hinge group");
-            }
-
-            pistonGroup.GetBlocksOfType(pistons);
-            hingeGroup.GetBlocksOfType(hinges);
-
             //TODO: Set gearState
+        }
+
+        private void CalibrateGearState(List<IMyLandingGear> gear)
+        {
+            bool gearLocked = gear.Any(item =>
+            {
+                return item.LockMode == LandingGearMode.Locked;
+            });
+            bool pistonsExtended = pistons.Any(item =>
+            {
+                return item.CurrentPosition == item.HighestPosition;
+            });
+            bool isTransitioning = pistons.Any(item =>
+            {
+                return item.CurrentPosition != item.LowestPosition &&
+                    item.CurrentPosition != item.HighestPosition;
+            });
+
+            if (gearLocked)
+            {
+                gearState = GearState.Open;
+            }
+            else if (!pistonsExtended)
+            {
+                gearState = GearState.Closed;
+            }
+            else if (isTransitioning)
+            {
+                gearState = GearState.Transition;
+            }
         }
 
         public void Enable()
@@ -200,7 +233,11 @@ namespace IngameScript
 
             if (altitude <= 15 && gearState != GearState.Open)
             {
-
+                proximityLCD.BackgroundColor = Color.Red;
+            }
+            else
+            {
+                //proximityLCD.BackgroundColor = 
             }
         }
 
