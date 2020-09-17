@@ -25,6 +25,7 @@ namespace IngameScript
         Dictionary<string, Action> commands = new Dictionary<string, Action>(StringComparer.OrdinalIgnoreCase);
 
         bool firstRun = true;
+        double previousAltitude = 0;
         bool enableAltitude = false;
         bool enableProximity = false;
 
@@ -46,6 +47,7 @@ namespace IngameScript
 
             cockpit = GridTerminalSystem.GetBlockWithName("Fighter Cockpit") as IMyCockpit;
             camera = GridTerminalSystem.GetBlockWithName("Proximity Camera") as IMyCameraBlock;
+            camera.EnableRaycast = true;
 
             proximityLCD = cockpit.GetSurface(2);
             altitudeLCD = cockpit.GetSurface(3);
@@ -60,7 +62,7 @@ namespace IngameScript
 
         public void Save()
         {
-            Storage = string.Format("{0};{1};{2};{3}", enableAltitude.ToString(), enableProximity.ToString(), firstRun.ToString(), gearState);
+            Storage = string.Format("{0};{1};{2};{3};{4}", enableAltitude.ToString(), enableProximity.ToString(), firstRun.ToString(), gearState, previousAltitude);
         }
 
         public void Main(string argument, UpdateType updateSource)
@@ -80,14 +82,16 @@ namespace IngameScript
                 }
             }
 
-            if (Storage != "")
+            string[] entries = Storage.Split(';');
+            if (entries.Length == 5)
             {
-                string[] entries = Storage.Split(';');
                 bool.TryParse(entries[0], out enableAltitude);
                 bool.TryParse(entries[1], out enableProximity);
                 bool.TryParse(entries[2], out firstRun);
 
                 Enum.TryParse(entries[3], out gearState);
+
+                double.TryParse(entries[4], out previousAltitude);
             }
 
             Echo("Altitude: " + enableAltitude.ToString());
@@ -162,7 +166,7 @@ namespace IngameScript
         {
             string command = commandLine.Argument(1);
 
-            if (string.Equals(command, "proximity sensor", StringComparison.OrdinalIgnoreCase))
+            if (string.Equals(command, "proximity", StringComparison.OrdinalIgnoreCase))
             {
                 EnableProximityWarning();
             }
@@ -203,7 +207,6 @@ namespace IngameScript
 
         private double GetAltitude(IMyCameraBlock camera)
         {
-            camera.EnableRaycast = true;
             MyDetectedEntityInfo detection = camera.Raycast(500);
             Vector3D cameraPosition = camera.GetPosition();
             Vector3D raycastPosition;
@@ -212,12 +215,16 @@ namespace IngameScript
             {
                 raycastPosition = (Vector3D)detection.HitPosition;
 
-                Vector3D diff = cameraPosition - raycastPosition;
+                Vector3D diffVector = cameraPosition - raycastPosition;
+                double diff = diffVector.Length() - 0.3;
+                previousAltitude = diff;
 
-                return diff.Length() - 0.3;
+                return diff;
             }
-
-            return double.MaxValue;
+            else
+            {
+                return previousAltitude;
+            }
         }
 
         public void EnableProximityWarning()
@@ -237,7 +244,7 @@ namespace IngameScript
             }
             else
             {
-                //proximityLCD.BackgroundColor = 
+                proximityLCD.BackgroundColor = new Color(0, 88, 151);
             }
         }
 
